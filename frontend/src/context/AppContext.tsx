@@ -164,14 +164,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const deleteWatchlistById = useCallback(async (id: number) => {
-    await deleteWatchlist(id);
-    await refreshWatchlist();
+    try {
+      await deleteWatchlist(id);
+      await refreshWatchlist();
+    } catch (e) {
+      console.error('Failed to delete watchlist:', e);
+      alert('Failed to delete watchlist. It might not exist or you lack permission.');
+    }
   }, [refreshWatchlist]);
 
   const reorderActiveWatchlist = useCallback(async (stock_ids: number[]) => {
     if (!watchlist) return;
-    await reorderWatchlist(watchlist.id, stock_ids);
-    await refreshWatchlist();
+    try {
+      await reorderWatchlist(watchlist.id, stock_ids);
+      await refreshWatchlist();
+    } catch (e) {
+      console.error('Failed to reorder watchlist:', e);
+    }
   }, [watchlist, refreshWatchlist]);
 
   // Initial load

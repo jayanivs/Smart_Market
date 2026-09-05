@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { getUserId, setUserId, googleLogin, getUserDetails } from '../services/api';
 import WeeklyReportModal from './WeeklyReportModal';
-import { useGoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin, googleLogout } from '@react-oauth/google';
 
 function LiveStatus({ lastUpdated, isStale }: { lastUpdated: Date | null; isStale: boolean }) {
   const [age, setAge] = useState(0);
@@ -86,6 +86,7 @@ function UserAuthSelector() {
   });
 
   const handleLogout = () => {
+    googleLogout();
     setUserId('1', '', ''); // Fallback to mock user 1
     window.location.reload();
   };
