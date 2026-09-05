@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+pydantic
+pydantic-settings
+websockets
+apscheduler
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+redis>=5.0.0
+arq>=0.25.0

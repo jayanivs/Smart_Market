@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --surface: 0 0% 100%;
+    --surface-highlight: 0 0% 95%;
+    --border: 0 0% 90%;
+    --primary: 20 100% 47%;
+    --danger: 353 87% 49%;
+    --warning: 38 92% 44%;
+    --success: 142 76% 36%;
+    --foreground: 0 0% 10%;
+    --text-muted: 0 0% 40%;
+  }
+
+  .dark {
+    --background: 0 0% 4%;
+    --surface: 0 0% 7%;
+    --surface-highlight: 0 0% 10%;
+    --border: 0 0% 13%;
+    --primary: 20 100% 55%;
+    --danger: 353 87% 55%;
+    --warning: 38 92% 50%;
+    --success: 142 76% 45%;
+    --foreground: 0 0% 98%;
+    --text-muted: 0 0% 60%;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    @apply antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+}
+
+@layer components {
+  .num { @apply font-mono tabular-nums; }
+  .badge-critical { @apply text-danger bg-danger/10 border border-danger/30; }
+  .badge-important { @apply text-warning bg-warning/10 border border-warning/30; }
+  .badge-moderate { @apply text-primary bg-primary/10 border border-primary/30; }
+  .badge-normal { @apply text-textMuted bg-foreground/5 border border-foreground/10; }
+  .row-hover { @apply hover:bg-foreground/5 transition-colors duration-100 cursor-pointer; }
+  .sidebar-row { @apply flex items-center px-3 py-2 border-b border-border row-hover; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 0.15s ease-out forwards; }
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.animate-slide-in { animation: slide-in-right 0.2s ease-out forwards; }
