@@ -6,7 +6,7 @@ import AppShell from './components/AppShell';
 
 export default function App() {
   return (
-    <GoogleOAuthProvider clientId="754487682307-vrnpne8d5egs9r3i35rlh1e9p7lfurdg.apps.googleusercontent.com">
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
       <ThemeProvider>
         <AppProvider>
           <WebSocketProvider>

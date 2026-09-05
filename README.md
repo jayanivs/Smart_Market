@@ -112,6 +112,15 @@ A `frontend/vercel.json` is included to handle single-page application routing a
 
 ---
 
+## Google OAuth Setup
+
+1. Go to [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials)
+2. Create an OAuth 2.0 Client ID (Web application)
+3. Under "Authorized JavaScript origins" add every URL the app is served from (`http://localhost:5173` for dev, and the production/Vercel URL)
+4. Paste that client ID into `frontend/.env` as `VITE_GOOGLE_CLIENT_ID`
+
+---
+
 ## Environment Variables Reference
 
 ### Backend (`backend/.env`)

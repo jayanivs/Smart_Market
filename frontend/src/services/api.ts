@@ -180,6 +180,18 @@ export const addStockToWatchlist = (watchlistId: number, stockId: number) =>
   });
 export const removeStockFromWatchlist = (watchlistId: number, stockId: number) =>
   request<void>(`/api/watchlists/${watchlistId}/stocks/${stockId}`, { method: 'DELETE' });
+export const deleteWatchlist = (watchlistId: number) =>
+  request<{ status: string }>(`/api/watchlists/${watchlistId}`, { method: 'DELETE' });
+export const renameWatchlist = (watchlistId: number, name: string) =>
+  request<Watchlist>(`/api/watchlists/${watchlistId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+export const reorderWatchlist = (watchlistId: number, stock_ids: number[]) =>
+  request<Watchlist>(`/api/watchlists/${watchlistId}/stocks/reorder`, {
+    method: 'PATCH',
+    body: JSON.stringify({ stock_ids }),
+  });
 
 // ── Pulse ────────────────────────────────────────────────────────────────────
 export const fetchPulse = () => request<PulseScore[]>('/api/pulse');

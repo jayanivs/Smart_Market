@@ -1,9 +1,8 @@
-import { useState, useCallback } from 'react';
-import { Plus, Search, X, Trash2, LayoutList, Layers, Check, ChevronDown } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { Plus, Search, X, Trash2, LayoutList, Layers, Check, GripVertical } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import {
-  addStockToWatchlist, removeStockFromWatchlist, createWatchlist
-} from '../services/api';
+import { addStockToWatchlist, removeStockFromWatchlist, createWatchlist } from '../services/api';
+import WatchlistDropdown from './WatchlistDropdown';
 
 const SEVERITY_DOT: Record<string, string> = {
   CRITICAL: 'bg-danger animate-pulse',
@@ -17,16 +16,26 @@ function fmt(n: number): string {
 }
 
 export default function WatchlistSidebar() {
-  const { watchlist, watchlists, setActiveWatchlist, allStocks, pulseMap, refreshWatchlist, openDrawer } = useApp();
+  const {
+    watchlist, watchlists, setActiveWatchlist, allStocks, pulseMap,
+    refreshWatchlist, openDrawer, reorderActiveWatchlist,
+  } = useApp();
+
   const [search, setSearch] = useState('');
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
-  const [groupMode, setGroupMode] = useState<'sector' | 'list'>(() => {
-    return (localStorage.getItem('mp_groupMode') as 'sector' | 'list') ?? 'sector';
+  const [groupMode, setGroupMode] = useState<'sector' | 'priority'>(() => {
+    return (localStorage.getItem('mp_groupMode') as 'sector' | 'priority') ?? 'sector';
   });
 
-  const setAndPersistGroupMode = (mode: 'sector' | 'list') => {
+  // Drag-and-drop state
+  const dragStock = useRef<number | null>(null);  // stock.id being dragged
+  const dragOverStock = useRef<number | null>(null);
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
+
+  const setAndPersistGroupMode = (mode: 'sector' | 'priority') => {
     setGroupMode(mode);
     localStorage.setItem('mp_groupMode', mode);
   };
@@ -56,7 +65,7 @@ export default function WatchlistSidebar() {
   }, [watchlist, refreshWatchlist]);
 
   const handleCreateWatchlist = async () => {
-    const nameToUse = newName.trim() || "My Watchlist";
+    const nameToUse = newName.trim() || 'My Watchlist';
     const newWl = await createWatchlist(nameToUse);
     setNewName('');
     setIsCreating(false);
@@ -64,6 +73,38 @@ export default function WatchlistSidebar() {
     if (newWl && newWl.id) {
       setActiveWatchlist(newWl.id);
     }
+  };
+
+  // ── Drag-and-Drop handlers ────────────────────────────────────────────────
+  const handleDragStart = (stockId: number) => {
+    dragStock.current = stockId;
+    setDraggingId(stockId);
+  };
+
+  const handleDragEnter = (stockId: number) => {
+    if (dragStock.current === stockId) return;
+    dragOverStock.current = stockId;
+    setDragOverId(stockId);
+  };
+
+  const handleDragEnd = async () => {
+    const fromId = dragStock.current;
+    const toId = dragOverStock.current;
+    if (fromId !== null && toId !== null && fromId !== toId) {
+      const stocks = watchlist?.stocks ?? [];
+      const fromIdx = stocks.findIndex(s => s.id === fromId);
+      const toIdx = stocks.findIndex(s => s.id === toId);
+      if (fromIdx !== -1 && toIdx !== -1) {
+        const reordered = [...stocks];
+        const [moved] = reordered.splice(fromIdx, 1);
+        reordered.splice(toIdx, 0, moved);
+        await reorderActiveWatchlist(reordered.map(s => s.id));
+      }
+    }
+    dragStock.current = null;
+    dragOverStock.current = null;
+    setDraggingId(null);
+    setDragOverId(null);
   };
 
   const stocks = watchlist?.stocks ?? [];
@@ -75,7 +116,7 @@ export default function WatchlistSidebar() {
     return acc;
   }, {} as Record<string, typeof stocks>);
 
-  const renderStockRows = (list: typeof stocks) => list.map(stock => {
+  const renderStockRow = (stock: (typeof stocks)[0], draggable = false) => {
     const pulse = pulseMap[stock.id];
     const snap = pulse?.snapshot;
     const price = snap?.price ?? 0;
@@ -84,14 +125,34 @@ export default function WatchlistSidebar() {
     const isUp = chg >= 0;
     const severity = pulse?.severity ?? 'NORMAL';
     const isHovered = hoveredId === stock.id;
+    const isDragging = draggingId === stock.id;
+    const isDragOver = dragOverId === stock.id;
+
     return (
       <div
         key={stock.id}
-        className="sidebar-row group relative"
+        className={`sidebar-row group relative transition-all duration-150 ${
+          isDragging ? 'opacity-40 scale-95' : ''
+        } ${isDragOver ? 'border-t-2 border-primary' : ''}`}
+        draggable={draggable}
+        onDragStart={draggable ? () => handleDragStart(stock.id) : undefined}
+        onDragEnter={draggable ? () => handleDragEnter(stock.id) : undefined}
+        onDragEnd={draggable ? handleDragEnd : undefined}
+        onDragOver={draggable ? e => e.preventDefault() : undefined}
         onMouseEnter={() => setHoveredId(stock.id)}
         onMouseLeave={() => setHoveredId(null)}
         onClick={() => openDrawer('stock', stock.id, stock.symbol)}
       >
+        {/* Drag handle (priority mode only) */}
+        {draggable && (
+          <span
+            className="mr-1 text-textMuted cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+            onMouseDown={e => e.stopPropagation()}
+          >
+            <GripVertical className="w-3 h-3" />
+          </span>
+        )}
+
         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mr-2 ${SEVERITY_DOT[severity]}`} />
         <div className="flex-1 min-w-0">
           <div className="text-xs font-semibold text-foreground">{stock.symbol}</div>
@@ -121,39 +182,29 @@ export default function WatchlistSidebar() {
         )}
       </div>
     );
-  });
+  };
 
   return (
     <aside className="w-64 flex-shrink-0 bg-surface border-r border-border flex flex-col">
       {/* Header */}
       <div className="px-3 py-2 border-b border-border flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <div className="text-[10px] font-semibold text-textMuted uppercase tracking-widest flex items-center">
-            {watchlists.length > 0 ? (
-              <div className="relative flex items-center">
-                <select 
-                  value={watchlist?.id || ''}
-                  onChange={(e) => setActiveWatchlist(Number(e.target.value))}
-                  className="bg-transparent text-foreground uppercase tracking-widest font-semibold focus:outline-none cursor-pointer hover:text-primary transition-colors appearance-none pr-4"
-                  style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
-                >
-                  {watchlists.map(wl => (
-                    <option key={wl.id} value={wl.id} className="bg-surface text-foreground normal-case tracking-normal">
-                      {wl.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3 h-3 absolute right-0 pointer-events-none text-textMuted" />
-              </div>
-            ) : (
-              "Watchlist"
-            )}
-            {watchlist && <span className="ml-2 text-textMuted">{stocks.length}</span>}
-          </div>
-          <div className="flex items-center gap-1">
+          {/* Watchlist dropdown */}
+          {watchlists.length > 0 ? (
+            <WatchlistDropdown />
+          ) : (
+            <span className="text-[10px] font-semibold text-textMuted uppercase tracking-widest">
+              Watchlist
+            </span>
+          )}
+          {watchlist && <span className="ml-2 text-[10px] text-textMuted">{stocks.length}</span>}
+
+          {/* Toolbar buttons */}
+          <div className="flex items-center gap-1 ml-auto">
             {watchlist && (
               <>
                 <button
+                  id="watchlist-create-btn"
                   onClick={() => setIsCreating(!isCreating)}
                   title="Create new watchlist"
                   className={`p-1 rounded transition-colors ${isCreating ? 'text-primary bg-primary/10' : 'text-textMuted hover:text-textMuted'}`}
@@ -168,9 +219,9 @@ export default function WatchlistSidebar() {
                   <Layers className="w-3 h-3" />
                 </button>
                 <button
-                  onClick={() => setAndPersistGroupMode('list')}
-                  title="Flat list"
-                  className={`p-1 rounded transition-colors ${groupMode === 'list' ? 'text-primary bg-primary/10' : 'text-textMuted hover:text-textMuted'}`}
+                  onClick={() => setAndPersistGroupMode('priority')}
+                  title="Priority list (drag to reorder)"
+                  className={`p-1 rounded transition-colors ${groupMode === 'priority' ? 'text-primary bg-primary/10' : 'text-textMuted hover:text-textMuted'}`}
                 >
                   <LayoutList className="w-3 h-3" />
                 </button>
@@ -201,13 +252,13 @@ export default function WatchlistSidebar() {
               autoFocus
               className="flex-1 bg-black/10 dark:bg-white/5 border border-border rounded px-2 py-1 text-xs text-foreground placeholder-gray-600 focus:outline-none focus:border-primary"
             />
-            <button 
+            <button
               onClick={handleCreateWatchlist}
               className="p-1 bg-primary text-black rounded hover:bg-primary/90 transition-colors"
             >
               <Check className="w-3 h-3" />
             </button>
-            <button 
+            <button
               onClick={() => { setIsCreating(false); setNewName(''); }}
               className="p-1 text-textMuted hover:text-foreground transition-colors"
             >
@@ -223,7 +274,7 @@ export default function WatchlistSidebar() {
           <Search className="absolute left-2 top-2 w-3 h-3 text-textMuted" />
           <input
             type="text"
-            placeholder={watchlist ? "Add symbol..." : "Create watchlist first"}
+            placeholder={watchlist ? 'Add symbol...' : 'Create watchlist first'}
             value={search}
             onChange={e => setSearch(e.target.value)}
             onKeyDown={e => e.key === 'Escape' && setSearch('')}
@@ -246,7 +297,7 @@ export default function WatchlistSidebar() {
               <div
                 key={stock.id}
                 onClick={() => handleAdd(stock.id)}
-                className="flex items-center justify-between px-3 py-2 hover:bg-black/5 dark:bg-white/5 cursor-pointer border-b border-border"
+                className="flex items-center justify-between px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer border-b border-border"
               >
                 <div>
                   <div className="text-xs font-semibold text-foreground">{stock.symbol}</div>
@@ -284,14 +335,20 @@ export default function WatchlistSidebar() {
                   {sector}
                   <span className="ml-1.5 text-textMuted normal-case font-normal">{sectorStocks.length}</span>
                 </div>
-                {renderStockRows(sectorStocks)}
+                {sectorStocks.map(s => renderStockRow(s, false))}
               </div>
             ))
         ) : (
-          renderStockRows([...stocks].sort((a, b) => a.symbol.localeCompare(b.symbol)))
+          /* Priority mode — flat list with drag-and-drop */
+          <div className="py-1">
+            <div className="px-3 py-1 bg-surfaceHighlight/60 border-b border-border text-[9px] font-semibold text-textMuted uppercase tracking-widest sticky top-0 z-10">
+              Priority Order
+              <span className="ml-1.5 normal-case font-normal text-textMuted/70">drag to reorder</span>
+            </div>
+            {stocks.map(s => renderStockRow(s, true))}
+          </div>
         )}
       </div>
     </aside>
   );
 }
-

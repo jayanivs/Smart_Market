@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { PulseScore, Stock, Watchlist, QuickGroup } from '../services/api';
-import { fetchPulse, fetchWatchlists, fetchStocks, fetchQuickGroups, markAllNotificationsRead } from '../services/api';
+import { fetchPulse, fetchWatchlists, fetchStocks, fetchQuickGroups, markAllNotificationsRead, deleteWatchlist, reorderWatchlist } from '../services/api';
 
 interface DrawerState {
   type: 'why' | 'trail' | 'stock' | null;
@@ -31,6 +31,8 @@ interface AppContextType {
   refreshQuickGroups: () => Promise<void>;
   applyPulseUpdate: (stockId: number, score: number, severity: string, momentum: number) => void;
   clearUnread: () => void;
+  deleteWatchlistById: (id: number) => Promise<void>;
+  reorderActiveWatchlist: (stock_ids: number[]) => Promise<void>;
 
   // Drawer
   drawer: DrawerState;
@@ -161,6 +163,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDrawer({ type: null, stockId: null, symbol: null });
   }, []);
 
+  const deleteWatchlistById = useCallback(async (id: number) => {
+    await deleteWatchlist(id);
+    await refreshWatchlist();
+  }, [refreshWatchlist]);
+
+  const reorderActiveWatchlist = useCallback(async (stock_ids: number[]) => {
+    if (!watchlist) return;
+    await reorderWatchlist(watchlist.id, stock_ids);
+    await refreshWatchlist();
+  }, [watchlist, refreshWatchlist]);
+
   // Initial load
   useEffect(() => {
     refreshWatchlist();
@@ -184,6 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       pulseMap, pulseList, watchlist, watchlists, setActiveWatchlist, allStocks, quickGroups,
       unreadCount, lastUpdated, isStale,
       refreshPulse, refreshWatchlist, refreshQuickGroups, applyPulseUpdate, clearUnread,
+      deleteWatchlistById, reorderActiveWatchlist,
       drawer, openDrawer, closeDrawer,
       notifOpen, setNotifOpen: handleSetNotifOpen,
       reportOpen, setReportOpen,
