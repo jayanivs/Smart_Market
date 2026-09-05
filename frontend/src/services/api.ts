@@ -1,4 +1,7 @@
-export const API_BASE = 'http://localhost:8000';
+/// <reference types="vite/client" />
+// Use VITE_API_BASE env var in production (set in .env or Vercel dashboard).
+// Falls back to localhost:8000 for local development.
+export const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? 'http://localhost:8000';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -107,6 +110,8 @@ export interface User {
   name: string;
   email: string;
   picture: string | null;
+  /** Signed JWT returned by /api/auth/google and /api/auth/login */
+  token?: string;
 }
 
 
@@ -116,6 +121,10 @@ export function getUserId(): string {
   return localStorage.getItem('market_pulse_user_id') || '1';
 }
 
+export function getToken(): string | null {
+  return localStorage.getItem('market_pulse_token');
+}
+
 export function getUserDetails() {
   return {
     name: localStorage.getItem('market_pulse_user_name') || '',
@@ -123,16 +132,22 @@ export function getUserDetails() {
   };
 }
 
-export function setUserId(id: string, name?: string, picture?: string | null) {
+export function setUserId(id: string, name?: string, picture?: string | null, token?: string | null) {
   localStorage.setItem('market_pulse_user_id', id);
   if (name) localStorage.setItem('market_pulse_user_name', name);
   if (picture) localStorage.setItem('market_pulse_user_picture', picture);
+  if (token) localStorage.setItem('market_pulse_token', token);
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = getToken();
+  const authHeader: Record<string, string> = token
+    ? { Authorization: `Bearer ${token}` }
+    : { 'X-User-Id': getUserId() };  // dev fallback when no token stored yet
+
   const headers = {
     'Content-Type': 'application/json',
-    'X-User-Id': getUserId(),
+    ...authHeader,
     ...(options.headers || {}),
   };
   const resp = await fetch(`${API_BASE}${path}`, {

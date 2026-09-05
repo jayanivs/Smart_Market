@@ -4,8 +4,7 @@ import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { getUserId, setUserId, googleLogin, getUserDetails } from '../services/api';
 import WeeklyReportModal from './WeeklyReportModal';
-import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from 'jwt-decode';
+import { useGoogleLogin } from '@react-oauth/google';
 
 function LiveStatus({ lastUpdated, isStale }: { lastUpdated: Date | null; isStale: boolean }) {
   const [age, setAge] = useState(0);

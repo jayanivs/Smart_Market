@@ -45,6 +45,12 @@ class WatchlistOut(BaseModel):
 class WatchlistAddStock(BaseModel):
     stock_id: int
 
+class WatchlistRename(BaseModel):
+    name: str
+
+class WatchlistReorder(BaseModel):
+    stock_ids: List[int]  # ordered list; positions assigned by index
+
 class PulseExplanationOut(BaseModel):
     id: int
     reason_type: str

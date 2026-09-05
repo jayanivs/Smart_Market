@@ -26,13 +26,14 @@ class Watchlist(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     name = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
-    stocks = relationship("WatchlistStock", backref="watchlist", lazy="dynamic")
+    stocks = relationship("WatchlistStock", backref="watchlist", lazy="dynamic", cascade="all, delete-orphan")
 
 class WatchlistStock(Base):
     __tablename__ = "watchlist_stocks"
     id = Column(Integer, primary_key=True, index=True)
     watchlist_id = Column(Integer, ForeignKey("watchlists.id"), index=True)
     stock_id = Column(Integer, ForeignKey("stocks.id"), index=True)
+    position = Column(Integer, default=0, nullable=False, server_default="0")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class MarketSnapshot(Base):
