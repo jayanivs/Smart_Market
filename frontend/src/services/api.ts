@@ -135,8 +135,13 @@ export function getUserDetails() {
 export function setUserId(id: string, name?: string, picture?: string | null, token?: string | null) {
   localStorage.setItem('market_pulse_user_id', id);
   if (name) localStorage.setItem('market_pulse_user_name', name);
+  else localStorage.removeItem('market_pulse_user_name');
+  
   if (picture) localStorage.setItem('market_pulse_user_picture', picture);
+  else localStorage.removeItem('market_pulse_user_picture');
+  
   if (token) localStorage.setItem('market_pulse_token', token);
+  else localStorage.removeItem('market_pulse_token');
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -153,6 +158,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const resp = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
+    cache: 'no-store',
   });
   if (!resp.ok) {
     const text = await resp.text();
