@@ -89,7 +89,11 @@ def delete_watchlist(
     ).first()
     if not wl:
         raise HTTPException(status_code=404, detail="Watchlist not found")
-    db.delete(wl)  # cascade="all, delete-orphan" removes WatchlistStock rows
+    
+    # Explicitly delete related WatchlistStock rows to avoid IntegrityError
+    db.query(WatchlistStock).filter(WatchlistStock.watchlist_id == wl.id).delete()
+    
+    db.delete(wl)
     db.commit()
     return {"status": "ok"}
 

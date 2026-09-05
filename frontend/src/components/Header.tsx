@@ -72,7 +72,7 @@ function UserAuthSelector() {
         
         const res = await googleLogin(userInfo.name, userInfo.email, userInfo.picture || null);
         if (res && res.id) {
-          setUserId(res.id.toString(), res.name, res.picture);
+          setUserId(res.id.toString(), res.name, res.picture, res.token);
           setLocalUserId(res.id.toString());
           setUserName(res.name);
           setUserPicture(res.picture || '');
